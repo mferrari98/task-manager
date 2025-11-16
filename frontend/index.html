@@ -225,7 +225,7 @@
                         <div class="card mb-4">
                             <div class="card-body">
                                 <div class="row g-3">
-                                    <div class="col-md-3">
+                                    <div class="col-md-2">
                                         <label for="filterStatus" class="form-label">Estado</label>
                                         <select class="form-select" id="filterStatus">
                                             <option value="">Todos</option>
@@ -234,7 +234,16 @@
                                             <option value="finalizado">Finalizado</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-2">
+                                        <label for="filterProgressState" class="form-label">Progreso</label>
+                                        <select class="form-select" id="filterProgressState">
+                                            <option value="">Todos</option>
+                                            <option value="inicializado">🔄 Inicializado</option>
+                                            <option value="en proceso">⚡ En Proceso</option>
+                                            <option value="finalizado">✅ Finalizado</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
                                         <label for="filterPriority" class="form-label">Prioridad</label>
                                         <select class="form-select" id="filterPriority">
                                             <option value="">Todas</option>
@@ -385,8 +394,12 @@
                                                 <textarea class="form-control" id="updateComment" rows="2" placeholder="Comentario de progreso..."></textarea>
                                             </div>
                                             <div class="mb-2">
-                                                <label for="updateProgress" class="form-label">Progreso (%)</label>
-                                                <input type="number" class="form-control" id="updateProgress" min="0" max="100" value="0">
+                                                <label for="updateProgressState" class="form-label">Estado de Progreso</label>
+                                                <select class="form-control" id="updateProgressState">
+                                                    <option value="inicializado">🔄 Inicializado</option>
+                                                    <option value="en proceso">⚡ En Proceso</option>
+                                                    <option value="finalizado">✅ Finalizado</option>
+                                                </select>
                                             </div>
                                             <button type="submit" class="btn btn-primary btn-sm">Agregar Actualización</button>
                                         </form>
@@ -479,8 +492,12 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label for="editTaskProgress" class="form-label">Progreso (%)</label>
-                                <input type="number" class="form-control" id="editTaskProgress" min="0" max="100" value="0">
+                                <label for="editTaskProgressState" class="form-label">Estado de Progreso</label>
+                                <select class="form-select" id="editTaskProgressState">
+                                    <option value="inicializado">🔄 Inicializado</option>
+                                    <option value="en proceso">⚡ En Proceso</option>
+                                    <option value="finalizado">✅ Finalizado</option>
+                                </select>
                             </div>
                         </div>
                         <input type="hidden" id="editTaskId">

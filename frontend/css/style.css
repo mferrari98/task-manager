@@ -359,3 +359,28 @@ body {
     border-radius: 50%;
     border: 2px solid white;
 }
+
+/* Progress State Styles */
+.progress-state-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    font-weight: 500;
+}
+
+.progress-state-inicializado {
+    background-color: rgba(108, 117, 125, 0.1);
+    color: var(--secondary-color);
+    border: 1px solid rgba(108, 117, 125, 0.2);
+}
+
+.progress-state-en-proceso {
+    background-color: rgba(13, 110, 253, 0.1);
+    color: var(--primary-color);
+    border: 1px solid rgba(13, 110, 253, 0.2);
+}
+
+.progress-state-finalizado {
+    background-color: rgba(25, 135, 84, 0.1);
+    color: var(--success-color);
+    border: 1px solid rgba(25, 135, 84, 0.2);
+}

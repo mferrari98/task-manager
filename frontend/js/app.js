@@ -390,6 +390,7 @@ class TaskManager {
     createTaskCard(task) {
         const priorityClass = `task-priority-${task.priority}`;
         const statusClass = `status-${task.status}`;
+        const progressStateClass = `progress-state-${task.progress_state?.replace(' ', '-')}`;
         const priorityText = {
             'alta': 'Alta',
             'media': 'Media',
@@ -401,6 +402,12 @@ class TaskManager {
             'inactivo': 'Inactivo',
             'finalizado': 'Finalizado'
         }[task.status];
+
+        const progressStateText = {
+            'inicializado': '🔄 Inicializado',
+            'en proceso': '⚡ En Proceso',
+            'finalizado': '✅ Finalizado'
+        }[task.progress_state || 'inicializado'];
 
         return `
             <div class="col-md-6 col-lg-4 mb-4">
@@ -415,11 +422,14 @@ class TaskManager {
 
                         <div class="task-meta mb-2">
                             <div class="d-flex justify-content-between align-items-center">
-                                <small class="text-muted">
-                                    <i class="bi bi-person"></i> ${task.assigned_name || 'Sin asignar'}
-                                </small>
+                                <span class="badge progress-state-badge ${progressStateClass}">${progressStateText}</span>
                                 <small class="text-muted">
                                     <i class="bi bi-calendar"></i> ${new Date(task.created_at).toLocaleDateString()}
+                                </small>
+                            </div>
+                            <div class="mt-1">
+                                <small class="text-muted">
+                                    <i class="bi bi-person"></i> ${task.assigned_name || 'Sin asignar'}
                                 </small>
                             </div>
                         </div>
@@ -709,6 +719,12 @@ class TaskManager {
             return;
         }
 
+        const progressStateText = {
+            'inicializado': '🔄 Inicializado',
+            'en proceso': '⚡ En Proceso',
+            'finalizado': '✅ Finalizado'
+        };
+
         container.innerHTML = updates.map(update => `
             <div class="update-item">
                 <div class="d-flex justify-content-between align-items-start mb-2">
@@ -716,11 +732,12 @@ class TaskManager {
                     <small class="text-muted">${new Date(update.timestamp).toLocaleString()}</small>
                 </div>
                 ${update.comment ? `<p class="mb-2">${this.escapeHtml(update.comment)}</p>` : ''}
-                ${update.progress > 0 ? `
-                    <div class="progress-bar-custom">
-                        <div class="progress-fill" style="width: ${update.progress}%"></div>
+                ${update.progress_state ? `
+                    <div class="mb-2">
+                        <span class="badge progress-state-badge progress-state-${update.progress_state?.replace(' ', '-')}">
+                            ${progressStateText[update.progress_state] || update.progress_state}
+                        </span>
                     </div>
-                    <small class="progress-info">Progreso: ${update.progress}%</small>
                 ` : ''}
             </div>
         `).join('');
@@ -729,10 +746,10 @@ class TaskManager {
     async handleAddUpdate() {
         const taskId = document.getElementById('taskDetailsModal').dataset.taskId;
         const comment = document.getElementById('updateComment').value.trim();
-        const progress = parseInt(document.getElementById('updateProgress').value) || 0;
+        const progressState = document.getElementById('updateProgressState').value;
 
-        if (!comment && progress === 0) {
-            this.showError('Agrega un comentario o progreso');
+        if (!comment && !progressState) {
+            this.showError('Agrega un comentario o estado de progreso');
             return;
         }
 
@@ -742,7 +759,7 @@ class TaskManager {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ comment, progress })
+                body: JSON.stringify({ comment, progress_state: progressState })
             });
 
             if (response.ok) {
@@ -842,11 +859,13 @@ class TaskManager {
         const status = document.getElementById('filterStatus')?.value;
         const priority = document.getElementById('filterPriority')?.value;
         const assignedTo = document.getElementById('filterAssigned')?.value;
+        const progressState = document.getElementById('filterProgressState')?.value;
 
         return tasks.filter(task => {
             if (status && task.status !== status) return false;
             if (priority && task.priority !== priority) return false;
             if (assignedTo && task.assigned_to != assignedTo) return false;
+            if (progressState && task.progress_state !== progressState) return false;
             return true;
         });
     }
@@ -859,6 +878,7 @@ class TaskManager {
         document.getElementById('filterStatus').value = '';
         document.getElementById('filterPriority').value = '';
         document.getElementById('filterAssigned').value = '';
+        document.getElementById('filterProgressState').value = '';
         this.renderTasks();
     }
 
@@ -940,6 +960,7 @@ class TaskManager {
             document.getElementById('editTaskAssignedTo').value = task.assigned_to || '';
             document.getElementById('editTaskDueDate').value = task.due_date || '';
             document.getElementById('editTaskStatus').value = task.status;
+            document.getElementById('editTaskProgressState').value = task.progress_state || 'inicializado';
 
             // Populate users dropdown
             const assignedSelect = document.getElementById('editTaskAssignedTo');
@@ -1145,7 +1166,8 @@ class TaskManager {
                 priority: document.getElementById('editTaskPriority').value,
                 assigned_to: document.getElementById('editTaskAssignedTo').value || null,
                 due_date: document.getElementById('editTaskDueDate').value || null,
-                status: document.getElementById('editTaskStatus').value
+                status: document.getElementById('editTaskStatus').value,
+                progress_state: document.getElementById('editTaskProgressState').value
             };
 
             if (!taskData.title) {
@@ -1264,14 +1286,14 @@ class TaskManager {
     }
 
     // Override addUpdate to accept taskId parameter
-    async handleAddUpdate(taskId, comment = null, progress = null) {
+    async handleAddUpdate(taskId, comment = null, progressState = null) {
         try {
             const targetTaskId = taskId || document.getElementById('taskDetailsModal').dataset.taskId;
             const updateComment = comment || document.getElementById('updateComment').value.trim();
-            const updateProgress = progress !== null ? progress : parseInt(document.getElementById('updateProgress').value) || 0;
+            const updateProgressState = progressState !== null ? progressState : document.getElementById('updateProgressState').value;
 
-            if (!updateComment && updateProgress === 0) {
-                this.showError('Agrega un comentario o progreso');
+            if (!updateComment && !updateProgressState) {
+                this.showError('Agrega un comentario o estado de progreso');
                 return;
             }
 
@@ -1280,12 +1302,12 @@ class TaskManager {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ comment: updateComment, progress: updateProgress })
+                body: JSON.stringify({ comment: updateComment, progress_state: updateProgressState })
             });
 
             if (response.ok) {
                 // Clear form only if using the default form
-                if (!comment && !progress) {
+                if (!comment && !progressState) {
                     document.getElementById('addUpdateForm').reset();
                 }
 

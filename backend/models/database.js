@@ -48,6 +48,7 @@ class Database {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         due_date DATE,
+        progress_state TEXT NOT NULL DEFAULT 'inicializado' CHECK (progress_state IN ('inicializado', 'en proceso', 'finalizado')),
         FOREIGN KEY (assigned_to) REFERENCES users (id),
         FOREIGN KEY (created_by) REFERENCES users (id)
       )
@@ -59,7 +60,7 @@ class Database {
         task_id INTEGER NOT NULL,
         user_id INTEGER NOT NULL,
         comment TEXT,
-        progress INTEGER DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
+        progress_state TEXT DEFAULT 'inicializado' CHECK (progress_state IN ('inicializado', 'en proceso', 'finalizado')),
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE,
         FOREIGN KEY (user_id) REFERENCES users (id)
@@ -84,11 +85,79 @@ class Database {
             reject(err);
           } else {
             console.log('Database tables created successfully.');
-            this.createDefaultAdmin()
+            this.migrateProgressToStates()
+              .then(() => this.createDefaultAdmin())
               .then(() => resolve())
               .catch(reject);
           }
         });
+      });
+    });
+  }
+
+  // Migrate existing progress data to new state system
+  async migrateProgressToStates() {
+    return new Promise((resolve, reject) => {
+      // Check if progress_state column exists in tasks table
+      this.db.all("PRAGMA table_info(tasks)", (err, columns) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        const hasProgressState = columns.some(col => col.name === 'progress_state');
+        const hasProgress = columns.some(col => col.name === 'progress');
+
+        if (!hasProgressState && hasProgress) {
+          // Add progress_state column to existing tasks table
+          this.db.run(`
+            ALTER TABLE tasks ADD COLUMN progress_state TEXT NOT NULL DEFAULT 'inicializado' CHECK (progress_state IN ('inicializado', 'en proceso', 'finalizado'))
+          `, (err) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+
+            // Migrate existing progress values to states
+            this.db.run(`
+              UPDATE tasks
+              SET progress_state = CASE
+                WHEN progress = 0 THEN 'inicializado'
+                WHEN progress > 0 AND progress < 100 THEN 'en proceso'
+                WHEN progress = 100 THEN 'finalizado'
+                ELSE 'inicializado'
+              END
+            `, (err) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+
+              // Remove progress column from tasks table
+              this.db.run(`
+                ALTER TABLE tasks DROP COLUMN progress
+              `, (err) => {
+                if (err) {
+                  console.warn('Warning: Could not drop progress column from tasks:', err.message);
+                }
+                resolve();
+              });
+            });
+          });
+        } else if (!hasProgressState) {
+          // Add progress_state column if table doesn't have it
+          this.db.run(`
+            ALTER TABLE tasks ADD COLUMN progress_state TEXT NOT NULL DEFAULT 'inicializado' CHECK (progress_state IN ('inicializado', 'en proceso', 'finalizado'))
+          `, (err) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
+        } else {
+          resolve();
+        }
       });
     });
   }

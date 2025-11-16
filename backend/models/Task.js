@@ -16,6 +16,7 @@ class Task {
           t.created_at,
           t.updated_at,
           t.due_date,
+          t.progress_state,
           creator.name as creator_name,
           assigned.name as assigned_name
         FROM tasks t
@@ -40,6 +41,11 @@ class Task {
       if (filters.priority) {
         query += ' AND t.priority = ?';
         params.push(filters.priority);
+      }
+
+      if (filters.progress_state) {
+        query += ' AND t.progress_state = ?';
+        params.push(filters.progress_state);
       }
 
       // Add ordering
@@ -68,6 +74,7 @@ class Task {
           t.created_at,
           t.updated_at,
           t.due_date,
+          t.progress_state,
           creator.name as creator_name,
           assigned.name as assigned_name
         FROM tasks t
@@ -85,7 +92,7 @@ class Task {
         SELECT
           u.id,
           u.comment,
-          u.progress,
+          u.progress_state,
           u.timestamp,
           user.name as user_name
         FROM updates u
@@ -143,7 +150,7 @@ class Task {
   // Update task
   static async update(id, taskData, updatedBy) {
     try {
-      const { title, description, status, priority, assigned_to, due_date } = taskData;
+      const { title, description, status, priority, assigned_to, due_date, progress_state } = taskData;
 
       // Check if task exists
       const existingTask = await db.get('SELECT id FROM tasks WHERE id = ?', [id]);
@@ -159,6 +166,11 @@ class Task {
       // Validate priority if provided
       if (priority && !['baja', 'media', 'alta'].includes(priority)) {
         throw new Error('Priority must be baja, media, or alta');
+      }
+
+      // Validate progress_state if provided
+      if (progress_state && !['inicializado', 'en proceso', 'finalizado'].includes(progress_state)) {
+        throw new Error('Progress state must be inicializado, en proceso, or finalizado');
       }
 
       // Validate assigned user if provided
@@ -196,6 +208,10 @@ class Task {
       if (due_date !== undefined) {
         updates.push('due_date = ?');
         params.push(due_date);
+      }
+      if (progress_state !== undefined) {
+        updates.push('progress_state = ?');
+        params.push(progress_state);
       }
 
       if (updates.length === 0) {
@@ -235,15 +251,15 @@ class Task {
   // Add progress update
   static async addUpdate(taskId, updateData, userId) {
     try {
-      const { comment, progress } = updateData;
+      const { comment, progress_state } = updateData;
 
       // Validate input
-      if (!comment && progress === undefined) {
-        throw new Error('Comment or progress is required');
+      if (!comment && !progress_state) {
+        throw new Error('Comment or progress state is required');
       }
 
-      if (progress !== undefined && (progress < 0 || progress > 100)) {
-        throw new Error('Progress must be between 0 and 100');
+      if (progress_state && !['inicializado', 'en proceso', 'finalizado'].includes(progress_state)) {
+        throw new Error('Progress state must be inicializado, en proceso, or finalizado');
       }
 
       // Check if task exists
@@ -253,20 +269,29 @@ class Task {
       }
 
       const result = await db.run(`
-        INSERT INTO updates (task_id, user_id, comment, progress)
+        INSERT INTO updates (task_id, user_id, comment, progress_state)
         VALUES (?, ?, ?, ?)
       `, [
         taskId,
         userId,
         comment || '',
-        progress !== undefined ? progress : 0
+        progress_state || 'inicializado'
       ]);
+
+      // Update task's progress_state if provided
+      if (progress_state) {
+        await db.run(`
+          UPDATE tasks
+          SET progress_state = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `, [progress_state, taskId]);
+      }
 
       return await db.get(`
         SELECT
           u.id,
           u.comment,
-          u.progress,
+          u.progress_state,
           u.timestamp,
           user.name as user_name
         FROM updates u

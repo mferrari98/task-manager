@@ -20,6 +20,10 @@ router.get('/', requireAuth, async (req, res) => {
       filters.priority = req.query.priority;
     }
 
+    if (req.query.progress_state) {
+      filters.progress_state = req.query.progress_state;
+    }
+
     const tasks = await Task.getAll(filters);
     res.json(tasks);
   } catch (error) {
