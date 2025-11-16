@@ -432,6 +432,142 @@
         </div>
     </div>
 
+    <!-- Edit Task Modal -->
+    <div class="modal fade" id="editTaskModal" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editTaskModalLabel">Editar Tarea</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editTaskForm">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label for="editTaskTitle" class="form-label">Título *</label>
+                                <input type="text" class="form-control" id="editTaskTitle" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="editTaskPriority" class="form-label">Prioridad</label>
+                                <select class="form-select" id="editTaskPriority">
+                                    <option value="baja">Baja</option>
+                                    <option value="media">Media</option>
+                                    <option value="alta">Alta</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label for="editTaskDescription" class="form-label">Descripción</label>
+                                <textarea class="form-control" id="editTaskDescription" rows="3"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editTaskAssignedTo" class="form-label">Asignado a</label>
+                                <select class="form-select" id="editTaskAssignedTo">
+                                    <option value="">Sin asignar</option>
+                                    <!-- Users will be loaded here -->
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editTaskDueDate" class="form-label">Fecha Límite</label>
+                                <input type="date" class="form-control" id="editTaskDueDate">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editTaskStatus" class="form-label">Estado</label>
+                                <select class="form-select" id="editTaskStatus">
+                                    <option value="activo">Activo</option>
+                                    <option value="inactivo">Inactivo</option>
+                                    <option value="finalizado">Finalizado</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editTaskProgress" class="form-label">Progreso (%)</label>
+                                <input type="number" class="form-control" id="editTaskProgress" min="0" max="100" value="0">
+                            </div>
+                        </div>
+                        <input type="hidden" id="editTaskId">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="updateTaskBtn">Actualizar Tarea</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editUserModalLabel">Editar Usuario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editUserForm">
+                        <div class="mb-3">
+                            <label for="editUserName" class="form-label">Nombre *</label>
+                            <input type="text" class="form-control" id="editUserName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editUserRole" class="form-label">Rol *</label>
+                            <select class="form-select" id="editUserRole" required>
+                                <option value="trabajador">Trabajador</option>
+                                <option value="admin">Administrador</option>
+                            </select>
+                        </div>
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <strong>Nota:</strong> Al cambiar el rol de un usuario, se cerrará su sesión actual y deberá volver a iniciar sesión.
+                        </div>
+                        <input type="hidden" id="editUserId">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="updateUserBtn">Actualizar Usuario</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Status Modal -->
+    <div class="modal fade" id="changeStatusModal" tabindex="-1" aria-labelledby="changeStatusModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="changeStatusModalLabel">Cambiar Estado de Tarea</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="changeStatusForm">
+                        <div class="mb-3">
+                            <h6 id="statusTaskTitle"></h6>
+                            <p class="text-muted">Estado actual: <span id="currentStatusBadge" class="badge"></span></p>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newTaskStatus" class="form-label">Nuevo Estado</label>
+                            <select class="form-select" id="newTaskStatus" required>
+                                <option value="">Seleccionar nuevo estado</option>
+                                <option value="activo">Activo</option>
+                                <option value="inactivo">Inactivo</option>
+                                <option value="finalizado">Finalizado</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="statusChangeComment" class="form-label">Comentario (opcional)</label>
+                            <textarea class="form-control" id="statusChangeComment" rows="2" placeholder="Agrega un comentario sobre este cambio de estado..."></textarea>
+                        </div>
+                        <input type="hidden" id="statusTaskId">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="changeStatusBtn">Cambiar Estado</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Notification Toast -->
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
         <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">

@@ -175,6 +175,21 @@ class TaskManager {
             this.handleAddUpdate();
         });
 
+        // Edit task functionality
+        document.getElementById('updateTaskBtn').addEventListener('click', () => {
+            this.handleUpdateTask();
+        });
+
+        // Change status functionality
+        document.getElementById('changeStatusBtn').addEventListener('click', () => {
+            this.handleChangeStatus();
+        });
+
+        // Edit user functionality
+        document.getElementById('updateUserBtn').addEventListener('click', () => {
+            this.handleUpdateUser();
+        });
+
         // Form validation
         this.initFormValidation();
     }
@@ -912,13 +927,59 @@ class TaskManager {
     }
 
     async editTask(taskId) {
-        // Implementation for task editing
-        this.showInfo('Función de edición en desarrollo');
+        try {
+            // Get current task data
+            const response = await fetch(`/api/tasks/${taskId}`);
+            const task = await response.json();
+
+            // Populate edit form
+            document.getElementById('editTaskId').value = task.id;
+            document.getElementById('editTaskTitle').value = task.title;
+            document.getElementById('editTaskDescription').value = task.description || '';
+            document.getElementById('editTaskPriority').value = task.priority;
+            document.getElementById('editTaskAssignedTo').value = task.assigned_to || '';
+            document.getElementById('editTaskDueDate').value = task.due_date || '';
+            document.getElementById('editTaskStatus').value = task.status;
+
+            // Populate users dropdown
+            const assignedSelect = document.getElementById('editTaskAssignedTo');
+            assignedSelect.innerHTML = '<option value="">Sin asignar</option>' +
+                this.users.map(user =>
+                    `<option value="${user.id}">${this.escapeHtml(user.name)}</option>`
+                ).join('');
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('editTaskModal'));
+            modal.show();
+
+        } catch (error) {
+            console.error('Error loading task for editing:', error);
+            this.showError('Error al cargar la tarea para editar');
+        }
     }
 
     async changeTaskStatus(taskId) {
-        // Implementation for status change
-        this.showInfo('Función de cambio de estado en desarrollo');
+        try {
+            // Get current task data
+            const response = await fetch(`/api/tasks/${taskId}`);
+            const task = await response.json();
+
+            // Populate status change form
+            document.getElementById('statusTaskId').value = task.id;
+            document.getElementById('statusTaskTitle').textContent = task.title;
+            document.getElementById('currentStatusBadge').textContent = task.status;
+            document.getElementById('currentStatusBadge').className = `badge status-${task.status}`;
+            document.getElementById('newTaskStatus').value = '';
+            document.getElementById('statusChangeComment').value = '';
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('changeStatusModal'));
+            modal.show();
+
+        } catch (error) {
+            console.error('Error loading task for status change:', error);
+            this.showError('Error al cargar la tarea para cambiar estado');
+        }
     }
 
     async deleteTask(taskId) {
@@ -1017,7 +1078,30 @@ class TaskManager {
     }
 
     async editUser(userId) {
-        this.showInfo('Función de edición de usuarios en desarrollo');
+        try {
+            // Prevent self-editing
+            if (parseInt(userId) === this.currentUser.id) {
+                this.showError('No puedes editar tu propio usuario. Pide a otro administrador que lo haga.');
+                return;
+            }
+
+            // Get current user data
+            const response = await fetch(`/api/users/${userId}`);
+            const user = await response.json();
+
+            // Populate edit form
+            document.getElementById('editUserId').value = user.id;
+            document.getElementById('editUserName').value = user.name;
+            document.getElementById('editUserRole').value = user.role;
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+            modal.show();
+
+        } catch (error) {
+            console.error('Error loading user for editing:', error);
+            this.showError('Error al cargar el usuario para editar');
+        }
     }
 
     async deleteUser(userId) {
@@ -1049,6 +1133,177 @@ class TaskManager {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // Handle task update
+    async handleUpdateTask() {
+        try {
+            const taskId = document.getElementById('editTaskId').value;
+            const taskData = {
+                title: document.getElementById('editTaskTitle').value.trim(),
+                description: document.getElementById('editTaskDescription').value.trim(),
+                priority: document.getElementById('editTaskPriority').value,
+                assigned_to: document.getElementById('editTaskAssignedTo').value || null,
+                due_date: document.getElementById('editTaskDueDate').value || null,
+                status: document.getElementById('editTaskStatus').value
+            };
+
+            if (!taskData.title) {
+                this.showError('El título es obligatorio');
+                return;
+            }
+
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(taskData)
+            });
+
+            if (response.ok) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editTaskModal'));
+                modal.hide();
+
+                this.showSuccess('Tarea actualizada correctamente');
+
+                // Update task in current view
+                if (this.currentView === 'tasks' || this.currentView === 'myTasks') {
+                    this.renderTasks();
+                }
+            } else {
+                const error = await response.json();
+                this.showError(error.error || 'Error al actualizar tarea');
+            }
+        } catch (error) {
+            console.error('Update task error:', error);
+            this.showError('Error de conexión');
+        }
+    }
+
+    // Handle status change
+    async handleChangeStatus() {
+        try {
+            const taskId = document.getElementById('statusTaskId').value;
+            const newStatus = document.getElementById('newTaskStatus').value;
+            const comment = document.getElementById('statusChangeComment').value.trim();
+
+            if (!newStatus) {
+                this.showError('Selecciona un nuevo estado');
+                return;
+            }
+
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            if (response.ok) {
+                // Add progress update if comment provided
+                if (comment) {
+                    await this.handleAddUpdate(taskId, comment);
+                }
+
+                const modal = bootstrap.Modal.getInstance(document.getElementById('changeStatusModal'));
+                modal.hide();
+
+                this.showSuccess('Estado de tarea cambiado correctamente');
+
+                // Update task in current view
+                if (this.currentView === 'tasks' || this.currentView === 'myTasks') {
+                    this.renderTasks();
+                }
+            } else {
+                const error = await response.json();
+                this.showError(error.error || 'Error al cambiar estado de tarea');
+            }
+        } catch (error) {
+            console.error('Change status error:', error);
+            this.showError('Error de conexión');
+        }
+    }
+
+    // Handle user update
+    async handleUpdateUser() {
+        try {
+            const userId = document.getElementById('editUserId').value;
+            const name = document.getElementById('editUserName').value.trim();
+            const role = document.getElementById('editUserRole').value;
+
+            if (!name || !role) {
+                this.showError('Nombre y rol son obligatorios');
+                return;
+            }
+
+            const response = await fetch(`/api/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, role })
+            });
+
+            if (response.ok) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
+                modal.hide();
+
+                this.showSuccess('Usuario actualizado correctamente');
+                this.loadUserManagement();
+                this.loadUsers();
+            } else {
+                const error = await response.json();
+                this.showError(error.error || 'Error al actualizar usuario');
+            }
+        } catch (error) {
+            console.error('Update user error:', error);
+            this.showError('Error de conexión');
+        }
+    }
+
+    // Override addUpdate to accept taskId parameter
+    async handleAddUpdate(taskId, comment = null, progress = null) {
+        try {
+            const targetTaskId = taskId || document.getElementById('taskDetailsModal').dataset.taskId;
+            const updateComment = comment || document.getElementById('updateComment').value.trim();
+            const updateProgress = progress !== null ? progress : parseInt(document.getElementById('updateProgress').value) || 0;
+
+            if (!updateComment && updateProgress === 0) {
+                this.showError('Agrega un comentario o progreso');
+                return;
+            }
+
+            const response = await fetch(`/api/tasks/${targetTaskId}/updates`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ comment: updateComment, progress: updateProgress })
+            });
+
+            if (response.ok) {
+                // Clear form only if using the default form
+                if (!comment && !progress) {
+                    document.getElementById('addUpdateForm').reset();
+                }
+
+                this.showSuccess('Actualización agregada correctamente');
+
+                // Reload task details if modal is open
+                const modal = document.getElementById('taskDetailsModal');
+                if (modal.classList.contains('show')) {
+                    this.loadTaskDetails(targetTaskId);
+                }
+            } else {
+                const error = await response.json();
+                this.showError(error.error || 'Error al agregar actualización');
+            }
+        } catch (error) {
+            console.error('Add update error:', error);
+            this.showError('Error de conexión');
+        }
     }
 }
 
